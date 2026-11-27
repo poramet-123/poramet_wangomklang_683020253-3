@@ -10,19 +10,27 @@ import sys
 from pathlib import Path
 
 import duckdb
-
-# ให้พิมพ์ภาษาไทยได้บน Windows ทุกรุ่น
-sys.stdout.reconfigure(encoding="utf-8")
+# # ให้พิมพ์ภาษาไทยได้บน Windows ทุกรุ่น
+# sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "data"
+DATA_DIR = ROOT
 DB_PATH = ROOT / "northwind.duckdb"
+# my_dict ={'name' : 'frame',
+#   'secondname' : ''  ].,    
+# }
+# print(f"my name is{ my_dict['name']}")
 
 # ตารางใน schema raw → ไฟล์ต้นทาง (มาจาก 2 ระบบ)
 SOURCES = {
 # แหล่ง A: ระบบขายปัจจุบัน
-"customer": "raw/customer.csv",
-"employees": "raw/employees.csv",
+"customer": "raw_data/customer.csv",
+"employees": "raw_data/employees.csv",
+"order_details": "raw_data/order_details.csv",
+"orders": "raw_data/orders.csv",
+"products": "raw_data/products.csv",
+"shippers": "raw_data/shippers.csv",
+"suppliers": "raw_data/suppliers.csv",
 # แหล่ง B: ระบบขายเดิม (มีเฉพาะใบสั่งซื้อและรายการสินค้า)
 "legacy_orders": "legacy/orders.csv",
 "legacy_order_details": "legacy/order_details.csv",
@@ -30,30 +38,29 @@ SOURCES = {
 
 
 def main() -> None:
-con = duckdb.connect(str(DB_PATH))
-con.execute("CREATE SCHEMA IF NOT EXISTS raw")
+    con = duckdb.connect(str(DB_PATH))
+    con.execute("CREATE SCHEMA IF NOT EXISTS raw")
 
-print(f"โหลดข้อมูลเข้า {DB_PATH.name}")
-for table, relative_path in SOURCES.items():
-csv_path = DATA_DIR / relative_path
-if not csv_path.exists():
-raise FileNotFoundError(f"ไม่พบไฟล์ {csv_path}")
+    print(f"โหลดข้อมูลเข้า {DB_PATH.name}")
+    for table, relative_path in SOURCES.items():
+            csv_path = DATA_DIR / relative_path
+            if not csv_path.exists():
+                raise FileNotFoundError(f"ไม่พบไฟล์ {csv_path}")
 
-# Extract: read_csv อ่านไฟล์และเดาชนิดข้อมูลให้
-# Load: CREATE OR REPLACE TABLE เขียนทับตารางเดิมทั้งตาราง (full refresh)
-con.execute(
-f"""
-CREATE OR REPLACE TABLE raw.{table} AS
-SELECT *
-FROM read_csv('{csv_path.as_posix()}', header = true)
-"""
-)
-n = con.execute(f"SELECT COUNT(*) FROM raw.{table}").fetchall()[0][0]
-print(f" raw.{table:<22} {n:>6,} แถว")
-
-con.close()
-print("เสร็จแล้ว — ขั้นต่อไป: dbt run")
+                # Extract: read_csv อ่านไฟล์และเดาชนิดข้อมูลให้
+                # Load: CREATE OR REPLACE TABLE เขียนทับตารางเดิมทั้งตาราง (full refresh)
+            con.execute(
+                f"""
+                CREATE OR REPLACE TABLE raw.{table} AS
+                SELECT *
+                FROM read_csv('{csv_path.as_posix()}', header = true)
+                """
+            )
+            n = con.execute(f"SELECT COUNT(*) FROM raw.{table}").fetchall()[0][0]
+            print(f" raw.{table:<22} {n:>6,} แถว")
+    con.close()
+    print("เสร็จแล้ว — ขั้นต่อไป: dbt run")
 
 
 if __name__ == "__main__":
-main()
+    main()
