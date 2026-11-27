@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 import duckdb
-
 # # ให้พิมพ์ภาษาไทยได้บน Windows ทุกรุ่น
 # sys.stdout.reconfigure(encoding="utf-8")
 
